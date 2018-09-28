@@ -1,1 +1,30 @@
-Empty file as test (should be seen when connecting to local host)
+<script src="/socket.io/socket.io.js"></script>
+<script>
+var socket = io();
+function input() {
+    var input = prompt("Type something", "something");
+    if (input != null) {
+        socket.emit('input', input);
+        return false;
+    }
+}
+
+function append(text) {
+  document.getElementById("last").innerHTML =
+    document.getElementById("last").innerHTML + "<br>" + text;
+}
+
+socket.on('response', append);
+</script>
+<html>
+<body>
+
+<p>Click button to input</p>
+
+<button onclick="input()">Click me</button>
+
+<p id="last">Latest messages:</p>
+
+
+</body>
+</html>
