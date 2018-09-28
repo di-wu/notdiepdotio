@@ -5,30 +5,30 @@ var self; // contains all info about ourselves to send to the server
 function setup() {
   createCanvas(800, 600)
   self = {
-    id: int(random(10000)),  // change this maybe
     color: [random(255), random(255), random(255)],
-    position: [0, 0]
+    position: [0, 0],
+    moveX: 0,
+    moveY: 0
   }
 }
 
 function draw() {
-  sendPosition();
+  sendUpdate();
   background(230);
-  for (var playerNumber in allPlayers) {
-    var player = allPlayers[playerNumber];
+  for (var i = 0; i < allPlayers.length; i++) { // for ... in loop doesn't work here?
+    player = allPlayers[i];
+    if (player == null) continue;
     fill(player.color[0], player.color[1], player.color[2]);
     ellipse(player.position[0], player.position[1], 40, 40);
   }
 }
 
-function sendPosition() {
-  self.position = [mouseX, mouseY];
-  socket.emit('pos', self);
+function sendUpdate() {
+  self.moveX = keyIsDown(65) ? -1 : 0 + keyIsDown(68) ? 1 : 0;
+  self.moveY = keyIsDown(87) ? -1 : 0 + keyIsDown(83) ? 1 : 0;
+  socket.emit('infoUpdate', self);
 }
 
-function updatePositions(players) {
-  // Players is a variable containing a color and position for each player
+socket.on('positionUpdate', function(players){
   allPlayers = players;
-}
-
-socket.on('positionUpdate', updatePositions);
+});

@@ -9,19 +9,19 @@ app.get('/', function(req, res) {
 
 app.use(express.static(__dirname + '/client'))  // client is the root folder for clients
 
-var socketList = {};
+var socketList = [];
+var idCounter = 0;  // new connetions will get a new id, increasing by one
 
 io.on('connection', function(socket){
   console.log('Someone connected!');
+  socketList[idCounter] = {position: [50, 50], color: [0, 0, 0]}
+  socket.id = idCounter++;
 
-  socket.on('pos', function(player){
-    socket.id = player.id;
-    socketList[player.id] = player;
-    data = [];
-    for (var player in socketList) {
-      data.push(socketList[player]);
-    }
-    socket.emit('positionUpdate', data);
+  socket.on('infoUpdate', function(player){
+    if (socketList[socket.id] == null) return;  // this player is not registered (yet)
+    socketList[socket.id].color = player.color;
+    socketList[socket.id].position[0] += player.moveX * 5;
+    socketList[socket.id].position[1] += player.moveY * 5;
   });
 
   socket.on('disconnect', function(){
@@ -30,6 +30,12 @@ io.on('connection', function(socket){
   });
 });
 
+function sendUpdate() {
+  io.emit('positionUpdate', socketList);
+}
+
 http.listen(3000, function(){
   console.log('Server is up, listening on *:3000');
 });
+
+setInterval(sendUpdate, 10);  // Lower number to kill host
