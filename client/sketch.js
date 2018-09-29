@@ -1,34 +1,40 @@
 var socket = io();
-var allPlayers = [];
-var self; // contains all info about ourselves to send to the server
+var allObjects = {players: {}, bullets: {}};  // yeah, this needs to be matched with app.js for now...
+var inputs; // contains all info about ourselves to send to the server
 
 function setup() {
-  createCanvas(800, 600)
-  self = {
-    color: [random(255), random(255), random(255)],
-    position: [0, 0],
+  createCanvas(1200, 800);  // Hardcoding let's go
+  inputs = {
     moveX: 0,
-    moveY: 0
+    moveY: 0,
+    shoot: false
   }
 }
 
 function draw() {
   sendUpdate();
   background(230);
-  for (var i = 0; i < allPlayers.length; i++) { // for ... in loop doesn't work here?
-    player = allPlayers[i];
-    if (player == null) continue;
-    fill(player.color[0], player.color[1], player.color[2]);
-    ellipse(player.position[0], player.position[1], 40, 40);
+
+  for (const [index, object] of Object.entries(allObjects.players)) {
+    if (object == null) continue;
+    fill(object.color[0], object.color[1], object.color[2]);
+    ellipse(object.posX, object.posY, object.diameter, object.diameter);
+  }
+
+  for (const [index, object] of Object.entries(allObjects.bullets)) {
+      fill(200, 25, 25);
+      ellipse(object.posX, object.posY, 15, 15);
   }
 }
 
 function sendUpdate() {
-  self.moveX = keyIsDown(65) ? -1 : 0 + keyIsDown(68) ? 1 : 0;
-  self.moveY = keyIsDown(87) ? -1 : 0 + keyIsDown(83) ? 1 : 0;
-  socket.emit('infoUpdate', self);
+  // checks WASD and arrow keys
+  inputs.moveX = (keyIsDown(65) || keyIsDown(37)) ? -1 : 0 + (keyIsDown(68) || keyIsDown(39)) ? 1 : 0;
+  inputs.moveY = (keyIsDown(87) || keyIsDown(38)) ? -1 : 0 + (keyIsDown(83) || keyIsDown(40)) ? 1 : 0;
+  inputs.shoot = keyIsDown(32);   // Space
+  socket.emit('infoUpdate', inputs);
 }
 
-socket.on('positionUpdate', function(players){
-  allPlayers = players;
+socket.on('receiveUpdate', function(objects) {
+  allObjects = objects;
 });
