@@ -120,9 +120,9 @@ function shootBullets() {
       }
       player.timeSinceLastShot = 0;
       objectList.bullets[idCounter++] = newBullet;
-      player.shoot = false;
       player.posX -= newBullet.velX;
       player.posY -= newBullet.velY;
     }
+    player.shoot = false;
   }
 }
