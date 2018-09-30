@@ -2,6 +2,7 @@ var express = require('express');
 var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
+var tickSpeed = 10;    // Lower number to kill host
 
 app.get('/', function(req, res) {
   res.sendFile(__dirname + '/client/index.html');
@@ -34,7 +35,9 @@ function initialize(socket) {
     diameter: 50,
     moveX: 0,
     moveY: 0,
-    shoot: false
+    shoot: false,
+    firerate: 10,  // higher = shoot more bullets
+    timeSinceLastShot: 0  // keeps track of time waited since last bullet
   }
   objectList.players[idCounter] = newPlayer;
   socket.id = idCounter++;
@@ -63,7 +66,7 @@ http.listen(3000, function() {
   console.log('Server is up, listening on *:3000');
 });
 
-setInterval(updateTick, 10);  // Lower number to kill host
+setInterval(updateTick, tickSpeed);
 
 
 // Entire game code starts here
@@ -106,7 +109,8 @@ function updatePositions() {
 function shootBullets() {
   // Goes through all the players and spawns a bullet at their position if they shot
   for (const [index, player] of Object.entries(objectList.players)) {
-    if (player.shoot) {
+    player.timeSinceLastShot += tickSpeed;
+    if (player.shoot && player.timeSinceLastShot > 1000 / player.firerate) {
       var newBullet = {
         posX: player.posX + Math.cos(player.rot) * player.diameter / 2,
         posY: player.posY + Math.sin(player.rot) * player.diameter / 2,
@@ -114,8 +118,11 @@ function shootBullets() {
         velY: Math.sin(player.rot) * 4.5,
         id: idCounter
       }
+      player.timeSinceLastShot = 0;
       objectList.bullets[idCounter++] = newBullet;
       player.shoot = false;
+      player.posX -= newBullet.velX;
+      player.posY -= newBullet.velY;
     }
   }
 }
