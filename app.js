@@ -29,6 +29,7 @@ function initialize(socket) {
   var newPlayer = {
     posX: 600,
     posY: 400,
+    rot: 0,
     color: [Math.random() * 255, Math.random() * 255, Math.random() * 255],
     diameter: 50,
     moveX: 0,
@@ -83,8 +84,9 @@ function updatePositions() {
   for (const [index, player] of Object.entries(objectList.players)) {
     // Goes through all the connected players and updates their positions.
     if (player == null) continue;
-    player.posX += player.moveX * 2.5;   // Speed currently hardcoded in
-    player.posY += player.moveY * 2.5;
+    player.posX += player.moveY * Math.cos(player.rot) * 2.5;   // Speed currently hardcoded in
+    player.posY += player.moveY * Math.sin(player.rot) * 2.5;
+    player.rot += player.moveX * 0.05;
     // Lines below are for keeping player on screen
     if (player.posX - player.diameter / 2 < 0) player.posX = player.diameter / 2;
     if (player.posY - player.diameter / 2 < 0) player.posY = player.diameter / 2;
@@ -106,10 +108,10 @@ function shootBullets() {
   for (const [index, player] of Object.entries(objectList.players)) {
     if (player.shoot) {
       var newBullet = {
-        posX: player.posX,
-        posY: player.posY,
-        velX: Math.random() * 3 + 2,
-        velY: Math.random() * 3 + 2,
+        posX: player.posX + Math.cos(player.rot) * player.diameter / 2,
+        posY: player.posY + Math.sin(player.rot) * player.diameter / 2,
+        velX: Math.cos(player.rot) * 4.5,
+        velY: Math.sin(player.rot) * 4.5,
         id: idCounter
       }
       objectList.bullets[idCounter++] = newBullet;
