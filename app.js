@@ -18,14 +18,16 @@ var idCounter = 0;  // new connetions will get a new id, increasing by one
 
 io.on('connection', function(socket){
   console.log('Someone connected!');
-  initialize(socket);
+  initialize();
+  socket.id = idCounter++;
 
-  socket.on('infoUpdate', function(player) {infoUpdate(player, socket.id)});
+  socket.on('infoUpdate', function(player) {handleInfoUpdate(player, socket.id)});
+  socket.on('newPlayer', function(player) {secondaryPlayer(player, socket.id)});
 
-  socket.on('disconnect', function() { disconnect(socket.id)});
+  socket.on('disconnect', function() {disconnect(socket.id)});
 });
 
-function initialize(socket) {
+function initialize() {
   // Fully initializes a player in the socket list.
   var newPlayer = {
     posX: 600,
@@ -37,15 +39,32 @@ function initialize(socket) {
     moveY: 0,
     shoot: false,
     firerate: 10,  // higher = shoot more bullets
-    timeSinceLastShot: 0  // keeps track of time waited since last bullet
+    timeSinceLastShot: 0,  // keeps track of time waited since last bullet
+    secondPlayerId: -1  // If this player adds a second, we will keep track of id here
   }
   objectList.players[idCounter] = newPlayer;
-  socket.id = idCounter++;
 }
 
 function disconnect(id) {
   console.log('Aww, someone disconnected');
+  if (objectList.players[id].secondPlayerId != -1)
+      delete objectList.players[objectList.players[id].secondPlayerId];
   delete objectList.players[id];
+}
+
+function secondaryPlayer(player, originalId) {
+  // Here we will create a buddy player, and assign its id to the original player.
+  initialize();
+  objectList.players[originalId].secondPlayerId = idCounter++;
+}
+
+function handleInfoUpdate(player, id) {
+  // Okay this is where the spaghetti kinda starts
+  // We receive an id of the socket, but we don't know if it is for a primary or secondary player.
+  // A 2nd player always has a "keys" field though, so we use that to check which player we need to move.
+  if (player.keys != null)
+    infoUpdate(player, objectList.players[id].secondPlayerId);
+  else infoUpdate(player, id);
 }
 
 

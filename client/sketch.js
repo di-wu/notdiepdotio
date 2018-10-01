@@ -1,6 +1,8 @@
 var socket = io();
 var allObjects = {players: {}, bullets: {}};  // yeah, this needs to be matched with app.js for now...
 var inputs; // contains all info about ourselves to send to the server
+var addingPlayer = 0; // 0 = nothing, 1,2,3,4,5 are accepting controls, 6 is player added.
+var player2; // same as inputs but contains keymapping as well
 
 function setup() {
   createCanvas(1200, 800);  // Hardcoding let's go
@@ -24,6 +26,7 @@ function drawObjects() {
   drawBackground();
   drawPlayers();
   drawBullets();
+  drawUI();
 }
 
 var offset = 0;
@@ -55,12 +58,61 @@ function drawBullets() {
   }
 }
 
+function drawUI() {
+  // Draws a super mega cool UI which hopefully won't become too cluttered
+  if (addingPlayer == 6) return;  // A new player was already added
+  // First we draw a plus square
+  addingPlayer == 0 ? fill(233, 116, 96) : fill(168, 84, 69);
+  rect(width - 40, 40, 40, 40, 5);
+  addingPlayer == 0 ? fill(120, 233, 96) : fill(88, 169, 69);
+  rect(width - 40, 40, 30, 7, 2);
+  rect(width - 40, 40, 7, 30, 2);
+  // Now we draw control highlights in case we're adding a player.
+  fill(120, 233, 96);
+  if (addingPlayer == 1) rect(width - 40, 28.5, 7, 7, 2);
+  if (addingPlayer == 2) rect(width - 51.5, 40, 7, 7, 2);
+  if (addingPlayer == 3) rect(width - 40, 51.5, 7, 7, 2);
+  if (addingPlayer == 4) rect(width - 28.5, 40, 7, 7, 2);
+  if (addingPlayer == 5) rect(width - 40, 40, 7, 7, 2);
+}
+
+function mouseClicked() {
+  // Checks mouse click against "add player" button
+  if (mouseX > width - 60 && mouseX < width - 20 && mouseY > 20 && mouseY < 60 && addingPlayer == 0) {
+    addingPlayer = 1;
+    player2 = {
+      moveX: 0,
+      moveY: 0,
+      shoot: false,
+      keys: []  // holds keycoes in order Up, Left, down, right, action
+    }
+  }
+}
+
+function keyPressed() {
+  // We will use this function to add a new player to the system.
+  // Keyinputs for movement etc are checked in the sendUpdate function.
+  if (addingPlayer == 0 || addingPlayer == 6) return;
+  // Uncomment line below to disallow double-mapping of keys (eg both players use WASD)
+  //if (keyCode == 65 || keyCode == 68 || keyCode == 83 || keyCode == 87 || keyCode == 32) return;
+  player2.keys.push(keyCode);
+  addingPlayer = player2.keys.length + 1;
+  if (addingPlayer == 6) socket.emit('newPlayer', player2);
+}
+
 function sendUpdate() {
   // checks WASD and arrow keys
-  inputs.moveX = (keyIsDown(65) || keyIsDown(37)) ? -1 : 0 + (keyIsDown(68) || keyIsDown(39)) ? 1 : 0;
-  inputs.moveY = (keyIsDown(83) || keyIsDown(40)) ? -1 : 0 + (keyIsDown(87) || keyIsDown(38)) ? 1 : 0;
-  inputs.shoot = keyIsDown(32);   // Space
+  // inputs.moveX = (keyIsDown(65) || keyIsDown(37)) ? -1 : 0 + (keyIsDown(68) || keyIsDown(39)) ? 1 : 0;
+  // inputs.moveY = (keyIsDown(83) || keyIsDown(40)) ? -1 : 0 + (keyIsDown(87) || keyIsDown(38)) ? 1 : 0;
+  inputs.moveX = keyIsDown(65) ? -1 : 0 + keyIsDown(68) ? 1 : 0;
+  inputs.moveY = keyIsDown(83) ? -1 : 0 + keyIsDown(87) ? 1 : 0;
+  inputs.shoot = keyIsDown(32);
   socket.emit('infoUpdate', inputs);
+  if (addingPlayer != 6) return;
+  player2.moveX = keyIsDown(player2.keys[1]) ? -1 : 0 + keyIsDown(player2.keys[3]) ? 1 : 0;
+  player2.moveY = keyIsDown(player2.keys[2]) ? -1 : 0 + keyIsDown(player2.keys[0]) ? 1 : 0;
+  player2.shoot = keyIsDown(player2.keys[4]);
+  socket.emit('infoUpdate', player2);
 }
 
 socket.on('receiveUpdate', function(objects) {
