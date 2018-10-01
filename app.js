@@ -47,9 +47,11 @@ function initialize() {
 
 function disconnect(id) {
   console.log('Aww, someone disconnected');
-  if (objectList.players[id].secondPlayerId != -1)
-      delete objectList.players[objectList.players[id].secondPlayerId];
-  delete objectList.players[id];
+  setTimeout(function() { // we wait 0.2 seconds here to let any infoUpdate packets come in
+    if (objectList.players[id].secondPlayerId != -1)
+        delete objectList.players[objectList.players[id].secondPlayerId];
+    delete objectList.players[id];
+  }, 200);
 }
 
 function secondaryPlayer(player, originalId) {
