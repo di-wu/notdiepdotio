@@ -34,7 +34,7 @@ function initialize() {
     posY: 400,
     rot: 0,
     color: [Math.random() * 255, Math.random() * 255, Math.random() * 255],
-    diameter: 50,
+    radius: 25,
     moveX: 0,
     moveY: 0,
     shoot: false,
@@ -99,6 +99,7 @@ function updateTick() {
   // Executed at a certain interval, this is our main "game loop".
   shootBullets();
   updatePositions();
+  checkCollisions();
   sendUpdate();
 }
 
@@ -112,17 +113,17 @@ function updatePositions() {
     player.posY += player.moveY * Math.sin(player.rot) * 2.5;
     player.rot += player.moveX * 0.05;
     // Lines below are for keeping player on screen
-    if (player.posX - player.diameter / 2 < 0) player.posX = player.diameter / 2;
-    if (player.posY - player.diameter / 2 < 0) player.posY = player.diameter / 2;
-    if (player.posX + player.diameter / 2 > screenX) player.posX = screenX - player.diameter / 2;
-    if (player.posY + player.diameter / 2 > screenY) player.posY = screenY - player.diameter / 2;
+    if (player.posX - player.radius < 0) player.posX = player.radius;
+    if (player.posY - player.radius < 0) player.posY = player.radius;
+    if (player.posX + player.radius > screenX) player.posX = screenX - player.radius;
+    if (player.posY + player.radius > screenY) player.posY = screenY - player.radius;
   }
 
   for (const [index, bullet] of Object.entries(objectList.bullets)) {
     bullet.posX += bullet.velX;
     bullet.posY += bullet.velY;
-    if ((bullet.posX < -50 || bullet.posX > screenX + 50) &&
-        (bullet.posY < -50 || bullet.posY > screenX + 50))
+    if ((bullet.posX < -bullet.radius || bullet.posX > screenX + bullet.radius) &&
+        (bullet.posY < -bullet.radius || bullet.posY > screenX + bullet.radius))
         delete objectList.bullets[bullet.id];
   }
 }
@@ -133,10 +134,11 @@ function shootBullets() {
     player.timeSinceLastShot += tickSpeed;
     if (player.shoot && player.timeSinceLastShot > 1000 / player.firerate) {
       var newBullet = {
-        posX: player.posX + Math.cos(player.rot) * player.diameter / 2,
-        posY: player.posY + Math.sin(player.rot) * player.diameter / 2,
+        posX: player.posX + Math.cos(player.rot) * player.radius * 1.2,
+        posY: player.posY + Math.sin(player.rot) * player.radius * 1.2,
         velX: Math.cos(player.rot) * 4.5,
         velY: Math.sin(player.rot) * 4.5,
+        radius: 15,
         id: idCounter
       }
       player.timeSinceLastShot = 0;
@@ -146,4 +148,20 @@ function shootBullets() {
     }
     player.shoot = false;
   }
+}
+
+function checkCollisions() {
+  // This is where the server dies.
+  for (const [index, player] of Object.entries(objectList.players)) {
+    for (const [indexBullet, bullet] of Object.entries(objectList.bullets)) {
+      if (dist(player.posX, player.posY, bullet.posX, bullet.posY) < player.radius + bullet.radius / 2) {
+        delete objectList.bullets[bullet.id];
+      }
+    }
+  }
+}
+
+function dist(x1, y1, x2, y2) {
+  // Simply calculates distance. Why isn't this default like in p5? :c
+  return Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
 }

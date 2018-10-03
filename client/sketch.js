@@ -7,6 +7,7 @@ var player2; // same as inputs but contains keymapping as well
 function setup() {
   createCanvas(1200, 800);  // Hardcoding let's go
   rectMode(CENTER);
+  ellipseMode(CENTER);
   noStroke();
   inputs = {
     moveX: 0,
@@ -41,20 +42,20 @@ function drawBackground() {
 }
 
 function drawPlayers() {
-  for (const [index, object] of Object.entries(allObjects.players)) {
-    if (object == null) continue;
-    var x = object.posX; var y = object.posY; var d = object.diameter; var r = object.rot;
-    fill(object.color[0], object.color[1], object.color[2]);
+  for (const [index, player] of Object.entries(allObjects.players)) {
+    if (player == null) continue;
+    var x = player.posX; var y = player.posY; var d = player.radius * 2; var r = player.rot;
+    fill(player.color[0], player.color[1], player.color[2]);
     ellipse(x, y, d, d);
-    fill(object.color[0] * 0.5, object.color[1] * 0.5, object.color[2] * 0.5);
+    fill(player.color[0] * 0.5, player.color[1] * 0.5, player.color[2] * 0.5);
     ellipse(x + cos(r) * d / 2.5, y + sin(r) * d / 2.5, 8, 8);
   }
 }
 
 function drawBullets() {
-  for (const [index, object] of Object.entries(allObjects.bullets)) {
+  for (const [index, bullet] of Object.entries(allObjects.bullets)) {
       fill(200, 25, 25);
-      ellipse(object.posX, object.posY, 15, 15);
+      ellipse(bullet.posX, bullet.posY, bullet.radius, bullet.radius);
   }
 }
 
