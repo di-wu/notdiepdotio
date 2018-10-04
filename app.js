@@ -34,6 +34,7 @@ function initialize() {
     posY: 400,
     rot: 0,
     color: [Math.random() * 255, Math.random() * 255, Math.random() * 255],
+    health: 100,
     radius: 25,
     moveX: 0,
     moveY: 0,
@@ -155,6 +156,8 @@ function checkCollisions() {
   for (const [index, player] of Object.entries(objectList.players)) {
     for (const [indexBullet, bullet] of Object.entries(objectList.bullets)) {
       if (dist(player.posX, player.posY, bullet.posX, bullet.posY) < player.radius + bullet.radius / 2) {
+        player.health -= bullet.radius;
+        player.health = player.health < 0 ? 0 : player.health;
         delete objectList.bullets[bullet.id];
       }
     }

@@ -49,6 +49,8 @@ function drawPlayers() {
     ellipse(x, y, d, d);
     fill(player.color[0] * 0.5, player.color[1] * 0.5, player.color[2] * 0.5);
     ellipse(x + cos(r) * d / 2.5, y + sin(r) * d / 2.5, 8, 8);
+    fill(250 - player.health * 1.3, 110 + player.health, 50);  // needs improvement
+    rect(player.posX, player.posY + player.radius * 1.3, player.health / 2, 10);
   }
 }
 
