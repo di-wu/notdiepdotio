@@ -1,5 +1,5 @@
 var socket = io();
-var allObjects = {players: {}, bullets: {}};  // yeah, this needs to be matched with app.js for now...
+var allObjects = {players: {}, walls: {}, bullets: {}};  // yeah, this needs to be matched with app.js for now...
 var inputs; // contains all info about ourselves to send to the server
 var addingPlayer = 0; // 0 = nothing, 1,2,3,4,5 are accepting controls, 6 is player added.
 var player2; // same as inputs but contains keymapping as well
@@ -26,6 +26,7 @@ function drawObjects() {
   // Draws all things
   drawBackground();
   drawPlayers();
+  drawWalls();
   drawBullets();
   drawUI();
 }
@@ -49,15 +50,37 @@ function drawPlayers() {
     ellipse(x, y, d, d);
     fill(player.color[0] * 0.5, player.color[1] * 0.5, player.color[2] * 0.5);
     ellipse(x + cos(r) * d / 2.5, y + sin(r) * d / 2.5, 8, 8);
-    fill(250 - player.health * 1.3, 110 + player.health, 50);  // needs improvement
+    drawHealthBars();
+  }
+}
+
+function drawWalls() {
+  fill(67, 113, 130);
+  stroke(48, 83, 96);
+  strokeWeight(5);
+  for (const [index, wall] of Object.entries(allObjects.walls)) {
+    rect(wall.posX, wall.posY, wall.w, wall.h, 7);
+  }
+  noStroke();
+}
+
+
+function drawHealthBars() {
+  strokeWeight(2);
+  stroke(2);
+  for (const [index, player] of Object.entries(allObjects.players)) {
+    if (player == null || player.health <= 0) continue;
+    if (player.health <= 50) fill(255, 5.1 * player.health, 30);
+    else fill(255 - (player.health - 50) * 5.1, 255, 30);
     rect(player.posX, player.posY + player.radius * 1.3, player.health / 2, 10);
   }
+  noStroke();
 }
 
 function drawBullets() {
   for (const [index, bullet] of Object.entries(allObjects.bullets)) {
       fill(200, 25, 25);
-      ellipse(bullet.posX, bullet.posY, bullet.radius, bullet.radius);
+      ellipse(bullet.posX, bullet.posY, bullet.radius * 2, bullet.radius * 2);
   }
 }
 
