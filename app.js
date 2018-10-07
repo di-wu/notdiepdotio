@@ -11,15 +11,17 @@ app.get('/', function(req, res) {
 
 app.use(express.static(__dirname + '/client'))  // client is the root folder for clients
 
-var objectList = {
+var objectList = {    // make sure to match with sketch.js dict
   players: {},
+  walls: {},
   bullets: {}
 };
 var idCounter = 0;  // new connetions will get a new id, increasing by one
 
+
 io.on('connection', function(socket){
   console.log('Someone connected!');
-  initialize();
+  objectList.players[idCounter] = new playerScript();
   socket.id = idCounter++;
 
   socket.on('infoUpdate', function(player) {handleInfoUpdate(player, socket.id)});
@@ -27,11 +29,6 @@ io.on('connection', function(socket){
 
   socket.on('disconnect', function() {disconnect(socket.id)});
 });
-
-function initialize() {
-  // Fully initializes a player in the socket list.
-  objectList.players[idCounter] = new playerScript();
-}
 
 function disconnect(id) {
   console.log('Aww, someone disconnected');
@@ -82,6 +79,7 @@ setInterval(updateTick, tickSpeed);
 
 var screenX = 1200; // hardcoding canvas dimensions because ehhh
 var screenY = 800;
+respawnWalls();
 
 function updateTick() {
   // Executed at a certain interval, this is our main "game loop".
@@ -96,15 +94,19 @@ function updatePositions() {
   // Updates positions of all moving objects
   for (const [index, player] of Object.entries(objectList.players)) {
     // Goes through all the connected players and updates their positions.
-    if (player == null) continue;
+    if (player == null || player.health <= 0) continue;
     player.posX += player.moveY * Math.cos(player.rot) * 2.5;   // Speed currently hardcoded in
+    checkWallCollisionPlayer(player, "X");
     player.posY += player.moveY * Math.sin(player.rot) * 2.5;
+    checkWallCollisionPlayer(player, "Y");
     player.rot += player.moveX * 0.05;
     // Lines below are for keeping player on screen
     if (player.posX - player.radius < 0) player.posX = player.radius;
     if (player.posY - player.radius < 0) player.posY = player.radius;
     if (player.posX + player.radius > screenX) player.posX = screenX - player.radius;
     if (player.posY + player.radius > screenY) player.posY = screenY - player.radius;
+    // Collide with walls
+
   }
 
   for (const [index, bullet] of Object.entries(objectList.bullets)) {
@@ -116,17 +118,43 @@ function updatePositions() {
   }
 }
 
+function checkWallCollisionPlayer(player, direction) {
+  // Collision is always fun :)
+  if (direction === "X") {
+    for (const [index, wall] of Object.entries(objectList.walls)) {
+      if (player.posX + player.radius > wall.posX - wall.w / 2 &&
+          player.posX - player.radius < wall.posX + wall.w / 2 &&
+          player.posY + player.radius / 2 > wall.posY - wall.h / 2 &&
+          player.posY - player.radius / 2 < wall.posY + wall.h / 2) {
+            // We are in the wall, probably
+            player.posX = player.posX < wall.posX ? wall.posX - wall.w / 2 - player.radius : wall.posX + wall.w / 2 + player.radius;
+          }
+    }
+  } else if (direction === "Y") {
+    for (const [index, wall] of Object.entries(objectList.walls)) {
+      if (player.posX + player.radius / 2 > wall.posX - wall.w / 2 &&
+          player.posX - player.radius / 2 < wall.posX + wall.w / 2 &&
+          player.posY + player.radius > wall.posY - wall.h / 2 &&
+          player.posY - player.radius < wall.posY + wall.h / 2) {
+            // We are in the wall, probably
+            player.posY = player.posY < wall.posY ? wall.posY - wall.h / 2 - player.radius : wall.posY + wall.h / 2 + player.radius;
+          }
+    }
+  }
+}
+
 function shootBullets() {
   // Goes through all the players and spawns a bullet at their position if they shot
   for (const [index, player] of Object.entries(objectList.players)) {
+    if (player == null || player.health <= 0) continue
     player.timeSinceLastShot += tickSpeed;
     if (player.shoot && player.timeSinceLastShot > 1000 / player.firerate) {
       var newBullet = {
         posX: player.posX + Math.cos(player.rot) * player.radius * 1.2,
         posY: player.posY + Math.sin(player.rot) * player.radius * 1.2,
-        velX: Math.cos(player.rot) * 4.5,
-        velY: Math.sin(player.rot) * 4.5,
-        radius: 15,
+        velX: Math.cos(player.rot + (Math.random() - 0.5) / player.accuracy) * 4.5,
+        velY: Math.sin(player.rot + (Math.random() - 0.5) / player.accuracy) * 4.5,
+        radius: 7.5,
         id: idCounter
       }
       player.timeSinceLastShot = 0;
@@ -140,13 +168,64 @@ function shootBullets() {
 
 function checkCollisions() {
   // This is where the server dies.
+  checkPlayerCollisions();
+  checkWallCollisions();
+}
+
+function checkPlayerCollisions() {
   for (const [index, player] of Object.entries(objectList.players)) {
     for (const [indexBullet, bullet] of Object.entries(objectList.bullets)) {
-      if (dist(player.posX, player.posY, bullet.posX, bullet.posY) < player.radius + bullet.radius / 2) {
+      if (dist(player.posX, player.posY, bullet.posX, bullet.posY) < player.radius + bullet.radius) {
         delete objectList.bullets[bullet.id];
+        if (player.health <= 0) { // This player was already dead, we don't darken even more.
+          player.posX += bullet.velX / 3;   // Cool knockback effect on the dead player
+          player.posY += bullet.velY / 3;
+          continue;
+        };
+        player.health -= bullet.radius;
+        player.health = player.health < 0 ? 0 : player.health;
+        if (player.health <= 0)
+          player.color = player.color.map(function(element) {return element*0.3;}); // beautiful
       }
     }
   }
+}
+
+function checkWallCollisions() {
+  for (const [index, wall] of Object.entries(objectList.walls)) {
+    for (const [indexBullet, bullet] of Object.entries(objectList.bullets)) {
+      if (bullet.posX + bullet.radius > wall.posX - wall.w / 2 &&
+          bullet.posX - bullet.radius < wall.posX + wall.w / 2 &&
+          bullet.posY + bullet.radius > wall.posY - wall.h / 2 &&
+          bullet.posY - bullet.radius < wall.posY + wall.h / 2) {
+            delete objectList.bullets[bullet.id];
+          }
+    }
+  }
+}
+
+function respawnWalls() {
+  // Spawns random walls to start off with.
+  objectList.walls = {};  // Throw away everything we had
+  while (Object.keys(objectList.walls).length < 6) {
+    var direction = Math.random() > 0.5;  // Is this wall long in x or y axis?
+    var newWall = {
+      posX: Math.floor(Math.random() * (screenX - 50) + 50),
+      posY: Math.floor(Math.random() * (screenY - 50) + 50),
+      w: Math.floor(50 + 150 * direction + direction * 250 * gaussianRand()),
+      h: Math.floor(50 + 150 * !direction + !direction * 250 * gaussianRand()),
+      id: idCounter
+    }
+    objectList.walls[idCounter++] = newWall;
+  }
+}
+
+function gaussianRand() {
+  var rand = 0;
+  for (var i = 0; i < 6; i += 1) {
+    rand += Math.random();
+  }
+  return rand / 6;
 }
 
 function dist(x1, y1, x2, y2) {
