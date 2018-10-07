@@ -3,6 +3,7 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var tickSpeed = 10;    // Lower number to kill host
+var playerScript = require('./player.js');
 
 app.get('/', function(req, res) {
   res.sendFile(__dirname + '/client/index.html');
@@ -29,20 +30,7 @@ io.on('connection', function(socket){
 
 function initialize() {
   // Fully initializes a player in the socket list.
-  var newPlayer = {
-    posX: 600,
-    posY: 400,
-    rot: 0,
-    color: [Math.random() * 255, Math.random() * 255, Math.random() * 255],
-    radius: 25,
-    moveX: 0,
-    moveY: 0,
-    shoot: false,
-    firerate: 10,  // higher = shoot more bullets
-    timeSinceLastShot: 0,  // keeps track of time waited since last bullet
-    secondPlayerId: -1  // If this player adds a second, we will keep track of id here
-  }
-  objectList.players[idCounter] = newPlayer;
+  objectList.players[idCounter] = new playerScript();
 }
 
 function disconnect(id) {
