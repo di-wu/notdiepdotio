@@ -3,7 +3,7 @@ var app = express();
 var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var tickSpeed = 10;    // Lower number to kill host
-var playerScript = require('./player.js');
+var Player = require('./player.js');
 
 app.get('/', function(req, res) {
   res.sendFile(__dirname + '/client/index.html');
@@ -20,18 +20,18 @@ var idCounter = 0;  // new connetions will get a new id, increasing by one
 
 
 io.on('connection', function(socket){
-  console.log('Someone connected!');
-  objectList.players[idCounter] = new playerScript();
+  console.log('Someone connected! Given id ' + idCounter);
+  objectList.players[idCounter] = new Player();
   socket.id = idCounter++;
 
   socket.on('infoUpdate', function(player) {handleInfoUpdate(player, socket.id)});
-  socket.on('newPlayer', function(player) {secondaryPlayer(player, socket.id)});
+  socket.on('newPlayer', function() {secondaryPlayer(socket.id)});
 
   socket.on('disconnect', function() {disconnect(socket.id)});
 });
 
 function disconnect(id) {
-  console.log('Aww, someone disconnected');
+  console.log('Aww, someone disconnected! Was id ' + id);
   setTimeout(function() { // we wait 0.2 seconds here to let any infoUpdate packets come in
     if (objectList.players[id].secondPlayerId != -1)
         delete objectList.players[objectList.players[id].secondPlayerId];
@@ -39,9 +39,9 @@ function disconnect(id) {
   }, 200);
 }
 
-function secondaryPlayer(player, originalId) {
+function secondaryPlayer(originalId) {
   // Here we will create a buddy player, and assign its id to the original player.
-  initialize();
+  objectList.players[idCounter] = new Player();
   objectList.players[originalId].secondPlayerId = idCounter++;
 }
 

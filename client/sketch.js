@@ -1,11 +1,15 @@
 var socket = io();
-var allObjects = {players: {}, walls: {}, bullets: {}};  // yeah, this needs to be matched with app.js for now...
+var allObjects = {
+  players: {},
+  walls: {},
+  bullets: {}
+}; // yeah, this needs to be matched with app.js for now...
 var inputs; // contains all info about ourselves to send to the server
 var addingPlayer = 0; // 0 = nothing, 1,2,3,4,5 are accepting controls, 6 is player added.
 var player2; // same as inputs but contains keymapping as well
 
 function setup() {
-  createCanvas(1200, 800);  // Hardcoding let's go
+  createCanvas(1200, 800); // Hardcoding let's go
   rectMode(CENTER);
   ellipseMode(CENTER);
   noStroke();
@@ -32,6 +36,7 @@ function drawObjects() {
 
 var offset = 0;
 const LINES = 8;
+
 function drawBackground() {
   background(230);
   for (var i = 0; i < LINES; i++) {
@@ -45,7 +50,10 @@ function drawBackground() {
 function drawPlayers() {
   for (const [index, player] of Object.entries(allObjects.players)) {
     if (player == null) continue;
-    var x = player.posX; var y = player.posY; var d = player.radius * 2; var r = player.rot;
+    var x = player.posX;
+    var y = player.posY;
+    var d = player.radius * 2;
+    var r = player.rot;
     fill(player.color[0], player.color[1], player.color[2]);
     ellipse(x, y, d, d);
     fill(player.color[0] * 0.5, player.color[1] * 0.5, player.color[2] * 0.5);
@@ -72,21 +80,22 @@ function drawHealthBars() {
     if (player == null || player.health <= 0) continue;
     if (player.health <= 50) fill(255, 5.1 * player.health, 30);
     else fill(255 - (player.health - 50) * 5.1, 255, 30);
-    rect(player.posX, player.posY + player.radius * 1.3, player.health / 2, 10);
+    var ypos = player.posY + player.radius * 1.3 + 10 > height ? height - 10 : player.posY + player.radius * 1.3;
+    rect(player.posX, ypos, player.health / 2, 10);
   }
   noStroke();
 }
 
 function drawBullets() {
   for (const [index, bullet] of Object.entries(allObjects.bullets)) {
-      fill(200, 25, 25);
-      ellipse(bullet.posX, bullet.posY, bullet.radius * 2, bullet.radius * 2);
+    fill(200, 25, 25);
+    ellipse(bullet.posX, bullet.posY, bullet.radius * 2, bullet.radius * 2);
   }
 }
 
 function drawUI() {
   // Draws a super mega cool UI which hopefully won't become too cluttered
-  if (addingPlayer == 6) return;  // A new player was already added
+  if (addingPlayer == 6) return; // A new player was already added
   // First we draw a plus square
   addingPlayer == 0 ? fill(233, 116, 96) : fill(168, 84, 69);
   rect(width - 40, 40, 40, 40, 5);
@@ -110,7 +119,7 @@ function mouseClicked() {
       moveX: 0,
       moveY: 0,
       shoot: false,
-      keys: []  // holds keycoes in order Up, Left, down, right, action
+      keys: [] // holds keycodes in order Up, Left, down, right, action
     }
   }
 }
@@ -123,15 +132,18 @@ function keyPressed() {
   //if (keyCode == 65 || keyCode == 68 || keyCode == 83 || keyCode == 87 || keyCode == 32) return;
   player2.keys.push(keyCode);
   addingPlayer = player2.keys.length + 1;
-  if (addingPlayer == 6) socket.emit('newPlayer', player2);
+  if (addingPlayer == 6) socket.emit('newPlayer');
 }
 
 function sendUpdate() {
   // checks WASD and arrow keys
-  // inputs.moveX = (keyIsDown(65) || keyIsDown(37)) ? -1 : 0 + (keyIsDown(68) || keyIsDown(39)) ? 1 : 0;
-  // inputs.moveY = (keyIsDown(83) || keyIsDown(40)) ? -1 : 0 + (keyIsDown(87) || keyIsDown(38)) ? 1 : 0;
-  inputs.moveX = keyIsDown(65) ? -1 : 0 + keyIsDown(68) ? 1 : 0;
-  inputs.moveY = keyIsDown(83) ? -1 : 0 + keyIsDown(87) ? 1 : 0;
+  if (addingPlayer == 0) {
+    inputs.moveX = (keyIsDown(65) || keyIsDown(37)) ? -1 : 0 + (keyIsDown(68) || keyIsDown(39)) ? 1 : 0;
+    inputs.moveY = (keyIsDown(83) || keyIsDown(40)) ? -1 : 0 + (keyIsDown(87) || keyIsDown(38)) ? 1 : 0;
+  } else {
+    inputs.moveX = keyIsDown(65) ? -1 : 0 + keyIsDown(68) ? 1 : 0;
+    inputs.moveY = keyIsDown(83) ? -1 : 0 + keyIsDown(87) ? 1 : 0;
+  }
   inputs.shoot = keyIsDown(32);
   socket.emit('infoUpdate', inputs);
   if (addingPlayer != 6) return;
@@ -141,6 +153,6 @@ function sendUpdate() {
   socket.emit('infoUpdate', player2);
 }
 
-socket.on('receiveUpdate', function(objects) {
+socket.on('receiveUpdate', function (objects) {
   allObjects = objects;
 });
