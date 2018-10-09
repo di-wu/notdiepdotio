@@ -94,7 +94,7 @@ function updatePositions() {
   // Updates positions of all moving objects
   for (const [index, player] of Object.entries(objectList.players)) {
     // Goes through all the connected players and updates their positions.
-    if (player == null || player.health <= 0) continue;
+    if (player == null) continue;
     player.posX += player.moveY * Math.cos(player.rot) * 2.5;   // Speed currently hardcoded in
     checkWallCollisionPlayer(player, "X");
     player.posY += player.moveY * Math.sin(player.rot) * 2.5;
